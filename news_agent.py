@@ -65,7 +65,7 @@ AI_KEYWORDS = [
     "自然言語処理",
 ]
 
-CLAUDE_MODEL = "claude-sonnet-4-20250514"
+CLAUDE_MODEL = "claude-sonnet-4-6"
 
 # 日本標準時
 JST = timezone(timedelta(hours=9))
