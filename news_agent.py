@@ -39,30 +39,23 @@ RSS_FEEDS = [
 
 # 生成AI関連キーワード（いずれかが含まれれば対象）
 AI_KEYWORDS = [
+    "GPT",
     "生成AI",
-    "ChatGPT",
-    "Claude",
-    "Gemini",
     "LLM",
     "大規模言語モデル",
-    "Anthropic",
     "OpenAI",
-    "Google DeepMind",
-    "GPT",
-    "AI",                   # 広めにとっておき Claude で絞り込む
-    "人工知能",
-    "機械学習",
-    "ディープラーニング",
-    "深層学習",
+    "ChatGPT",
+    "Anthropic",
+    "Claude",
+    "Gemini",
     "Grok",
-    "Llama",
-    "Mistral",
+    "DeepSeek",
     "Copilot",
-    "Sora",
-    "Stable Diffusion",
-    "画像生成",
-    "音声生成",
-    "自然言語処理",
+    "IBM BoB",
+    "AIエージェント",
+    "AI Agent",
+    "Agentic AI",
+    "RAG",
 ]
 
 CLAUDE_MODEL = "claude-sonnet-4-6"
