@@ -1,291 +1,340 @@
 """
-生成AI日報エージェント ITアーキテクチャ図（PowerPoint 1枚）
+生成AI日報エージェント ITアーキテクチャ図（エンジニア向け PowerPoint 1枚）
 """
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
-from pptx.util import Inches, Pt
-from pptx.enum.shapes import MSO_SHAPE_TYPE
 import pptx.oxml.ns as nsmap
 from lxml import etree
 
 # ── カラーパレット ──────────────────────────────
-C_BG        = RGBColor(0xF4, 0xF7, 0xFB)  # スライド背景
-C_NAVY      = RGBColor(0x1B, 0x2A, 0x4A)  # タイトル・見出し
-C_BLUE      = RGBColor(0x2E, 0x6E, 0xC8)  # RSS / メイン枠
-C_TEAL      = RGBColor(0x00, 0x96, 0x88)  # Claude API
-C_ORANGE    = RGBColor(0xF5, 0x7C, 0x00)  # Gmail
-C_PURPLE    = RGBColor(0x6A, 0x1B, 0x9A)  # GitHub Actions
-C_GRAY      = RGBColor(0x78, 0x90, 0xA8)  # Secrets
+C_BG        = RGBColor(0x0D, 0x1B, 0x2A)   # 濃紺背景
+C_PANEL     = RGBColor(0x16, 0x28, 0x3D)   # パネル背景
+C_BORDER    = RGBColor(0x2A, 0x45, 0x65)   # 枠線
+C_BLUE      = RGBColor(0x29, 0x8F, 0xFF)   # RSSフィード
+C_GREEN     = RGBColor(0x00, 0xC8, 0x7A)   # 処理ステップ
+C_TEAL      = RGBColor(0x00, 0xC8, 0xC8)   # Claude API
+C_ORANGE    = RGBColor(0xFF, 0x7A, 0x00)   # Gmail
+C_PURPLE    = RGBColor(0xA0, 0x5C, 0xFF)   # GitHub Actions
+C_GRAY      = RGBColor(0x64, 0x8C, 0xAA)   # Secrets
 C_WHITE     = RGBColor(0xFF, 0xFF, 0xFF)
-C_LIGHT_BG  = RGBColor(0xE8, 0xF0, 0xFE)  # 薄い青背景
-C_ARROW     = RGBColor(0x90, 0xA4, 0xAE)  # 矢印
-
-SLIDE_W = Inches(13.33)
-SLIDE_H = Inches(7.5)
+C_MUTED     = RGBColor(0x8A, 0xA8, 0xC0)   # サブテキスト
+C_CODE      = RGBColor(0xF8, 0xD2, 0x66)   # コード・関数名
+C_DARK_TEXT = RGBColor(0x0D, 0x1B, 0x2A)
 
 prs = Presentation()
-prs.slide_width  = SLIDE_W
-prs.slide_height = SLIDE_H
+prs.slide_width  = Inches(13.33)
+prs.slide_height = Inches(7.5)
+slide = prs.slides.add_slide(prs.slide_layouts[6])
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])  # 白紙レイアウト
-
-# ── 背景色 ─────────────────────────────────────
-def set_slide_bg(slide, color: RGBColor):
-    background = slide.background
-    fill = background.fill
-    fill.solid()
-    fill.fore_color.rgb = color
-
-set_slide_bg(slide, C_BG)
+# ── 背景 ────────────────────────────────────────
+bg = slide.background.fill
+bg.solid()
+bg.fore_color.rgb = C_BG
 
 shapes = slide.shapes
 
-# ── ヘルパー関数 ────────────────────────────────
-def add_rect(slide, l, t, w, h, fill, text="", font_size=11, bold=False,
-             font_color=C_WHITE, line_color=None, line_width=Pt(0),
-             align=PP_ALIGN.CENTER, v_anchor=None, radius=None):
-    shape = slide.shapes.add_shape(
-        1,  # MSO_SHAPE_TYPE.RECTANGLE
-        Inches(l), Inches(t), Inches(w), Inches(h)
-    )
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill
-    if line_color:
-        shape.line.color.rgb = line_color
-        shape.line.width = line_width
-    else:
-        shape.line.fill.background()
+# ── ヘルパー ────────────────────────────────────
+def rgb_hex(r, g, b):
+    return RGBColor(r, g, b)
 
+def rect(l, t, w, h, fill, line_c=None, line_w=Pt(1), radius=None):
+    s = shapes.add_shape(1, Inches(l), Inches(t), Inches(w), Inches(h))
+    s.fill.solid()
+    s.fill.fore_color.rgb = fill
+    if line_c:
+        s.line.color.rgb = line_c
+        s.line.width = line_w
+    else:
+        s.line.fill.background()
     if radius:
-        # 角丸
-        sp = shape._element
-        prstGeom = sp.find('.//' + nsmap.qn('a:prstGeom'))
-        if prstGeom is not None:
-            prstGeom.set('prst', 'roundRect')
-            avLst = prstGeom.find(nsmap.qn('a:avLst'))
-            if avLst is None:
-                avLst = etree.SubElement(prstGeom, nsmap.qn('a:avLst'))
-            gd = etree.SubElement(avLst, nsmap.qn('a:gd'))
+        sp = s._element
+        pg = sp.find('.//' + nsmap.qn('a:prstGeom'))
+        if pg is not None:
+            pg.set('prst', 'roundRect')
+            av = pg.find(nsmap.qn('a:avLst'))
+            if av is None:
+                av = etree.SubElement(pg, nsmap.qn('a:avLst'))
+            gd = etree.SubElement(av, nsmap.qn('a:gd'))
             gd.set('name', 'adj')
             gd.set('fmla', f'val {radius}')
+    return s
 
-    if text:
-        tf = shape.text_frame
-        tf.word_wrap = True
-        if v_anchor:
-            tf.vertical_anchor = v_anchor
-        p = tf.paragraphs[0]
+def text_on(shape, lines, sizes, bolds, colors, align=PP_ALIGN.LEFT, v_anchor=None):
+    """shape にマルチラインテキストを設定する"""
+    from pptx.enum.text import MSO_ANCHOR
+    tf = shape.text_frame
+    tf.word_wrap = True
+    if v_anchor:
+        tf.vertical_anchor = v_anchor
+    for i, (txt, sz, bd, col) in enumerate(zip(lines, sizes, bolds, colors)):
+        p = tf.paragraphs[i] if i == 0 else tf.add_paragraph()
         p.alignment = align
         run = p.add_run()
-        run.text = text
-        run.font.size = Pt(font_size)
-        run.font.bold = bold
-        run.font.color.rgb = font_color
-    return shape
+        run.text = txt
+        run.font.size = Pt(sz)
+        run.font.bold = bd
+        run.font.color.rgb = col
+        run.font.name = "Consolas" if col == C_CODE else "Meiryo UI"
 
-def add_textbox(slide, l, t, w, h, text, font_size=10, bold=False,
-                color=C_NAVY, align=PP_ALIGN.CENTER):
-    txBox = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
-    tf = txBox.text_frame
-    tf.word_wrap = True
+def tb(l, t, w, h, lines, sizes, bolds, colors, align=PP_ALIGN.LEFT):
+    box = shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
+    text_on(box, lines, sizes, bolds, colors, align)
+    return box
+
+def arrow(x1, y1, x2, y2, color=C_MUTED, width=Pt(1.5), dash=None):
+    c = shapes.add_connector(1, Inches(x1), Inches(y1), Inches(x2), Inches(y2))
+    c.line.color.rgb = color
+    c.line.width = width
+    if dash:
+        c.line.dash_style = dash
+    ln = c.line._ln
+    he = ln.find(nsmap.qn('a:headEnd'))
+    if he is None:
+        he = etree.SubElement(ln, nsmap.qn('a:headEnd'))
+    he.set('type', 'arrow'); he.set('w', 'med'); he.set('len', 'med')
+    te = ln.find(nsmap.qn('a:tailEnd'))
+    if te is None:
+        te = etree.SubElement(ln, nsmap.qn('a:tailEnd'))
+    te.set('type', 'none')
+    return c
+
+def label(l, t, w, h, txt, sz=7.5, color=C_MUTED, align=PP_ALIGN.CENTER, code=False):
+    box = shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
+    tf = box.text_frame
     p = tf.paragraphs[0]
     p.alignment = align
     run = p.add_run()
-    run.text = text
-    run.font.size = Pt(font_size)
-    run.font.bold = bold
+    run.text = txt
+    run.font.size = Pt(sz)
     run.font.color.rgb = color
-    return txBox
-
-def add_arrow(slide, x1, y1, x2, y2, color=C_ARROW, width=Pt(1.5)):
-    """始点→終点の矢印ラインを追加"""
-    from pptx.util import Inches
-    connector = slide.shapes.add_connector(
-        1,  # MSO_CONNECTOR_STRAIGHT
-        Inches(x1), Inches(y1), Inches(x2), Inches(y2)
-    )
-    connector.line.color.rgb = color
-    connector.line.width = width
-    # 矢印先端
-    ln = connector.line._ln
-    tailEnd = ln.find(nsmap.qn('a:tailEnd'))
-    if tailEnd is None:
-        tailEnd = etree.SubElement(ln, nsmap.qn('a:tailEnd'))
-    tailEnd.set('type', 'none')
-    headEnd = ln.find(nsmap.qn('a:headEnd'))
-    if headEnd is None:
-        headEnd = etree.SubElement(ln, nsmap.qn('a:headEnd'))
-    headEnd.set('type', 'arrow')
-    headEnd.set('w', 'med')
-    headEnd.set('len', 'med')
-    return connector
+    run.font.name = "Consolas" if code else "Meiryo UI"
 
 # ══════════════════════════════════════════════
 # タイトルバー
 # ══════════════════════════════════════════════
-add_rect(slide, 0, 0, 13.33, 0.7, fill=C_NAVY,
-         text="生成AI日報エージェント  —  ITアーキテクチャ",
-         font_size=20, bold=True, font_color=C_WHITE)
+title_bar = rect(0, 0, 13.33, 0.52, fill=C_PANEL, line_c=C_BORDER, line_w=Pt(0.5))
+tb(0.15, 0.07, 9.0, 0.38,
+   ["生成AI日報エージェント  —  ITアーキテクチャ（エンジニア向け）"],
+   [17], [True], [C_WHITE])
+tb(10.0, 0.07, 3.0, 0.38,
+   ["Python 3.12  |  GitHub Actions"],
+   [9], [False], [C_MUTED], align=PP_ALIGN.RIGHT)
 
 # ══════════════════════════════════════════════
-# ゾーン背景
+# ゾーンパネル
 # ══════════════════════════════════════════════
-# 左ゾーン（入力）薄枠
-add_rect(slide, 0.2, 0.85, 3.2, 5.8, fill=RGBColor(0xE3,0xEA,0xF8),
-         line_color=RGBColor(0xBB,0xCC,0xEE), line_width=Pt(1))
-add_textbox(slide, 0.3, 0.88, 2.5, 0.3, "📡  入力（RSSフィード）",
-            font_size=9, bold=True, color=C_BLUE)
+# 左ゾーン
+z_left = rect(0.12, 0.62, 2.85, 6.2, fill=C_PANEL,
+              line_c=C_BLUE, line_w=Pt(0.8), radius=12000)
+tb(0.22, 0.65, 2.5, 0.28,
+   ["INPUT  /  RSS Feeds"],
+   [7.5], [True], [C_BLUE])
 
-# 中央ゾーン（処理）薄枠
-add_rect(slide, 3.65, 0.85, 3.8, 5.8, fill=RGBColor(0xE8,0xF5,0xE9),
-         line_color=RGBColor(0xBB,0xDD,0xBB), line_width=Pt(1))
-add_textbox(slide, 3.75, 0.88, 3.2, 0.3, "⚙️  処理（news_agent.py）",
-            font_size=9, bold=True, color=RGBColor(0x2E,0x7D,0x32))
+# 中央ゾーン
+z_mid = rect(3.2, 0.62, 4.3, 6.2, fill=C_PANEL,
+             line_c=C_GREEN, line_w=Pt(0.8), radius=12000)
+tb(3.3, 0.65, 3.8, 0.28,
+   ["PROCESSING  /  news_agent.py"],
+   [7.5], [True], [C_GREEN])
 
-# 右ゾーン（出力）薄枠
-add_rect(slide, 9.7, 0.85, 3.4, 5.8, fill=RGBColor(0xFF, 0xF3, 0xE0),
-         line_color=RGBColor(0xEE, 0xCC, 0xAA), line_width=Pt(1))
-add_textbox(slide, 9.8, 0.88, 3.0, 0.3, "📤  出力",
-            font_size=9, bold=True, color=C_ORANGE)
+# 右ゾーン
+z_right = rect(9.72, 0.62, 3.5, 6.2, fill=C_PANEL,
+               line_c=C_ORANGE, line_w=Pt(0.8), radius=12000)
+tb(9.82, 0.65, 3.0, 0.28,
+   ["OUTPUT  /  Gmail SMTP"],
+   [7.5], [True], [C_ORANGE])
 
 # ══════════════════════════════════════════════
-# 左：RSSフィード（4つ）
+# 左：RSSフィード 4個
 # ══════════════════════════════════════════════
-rss_items = [
-    ("Google News\n生成AI", 1.35),
-    ("Google News\nChatGPT/Claude\n/Gemini/LLM", 2.25),
-    ("ITmedia NEWS", 3.45),
-    ("TechCrunch Japan", 4.35),
+feeds = [
+    ("Google News",    "q=生成AI&hl=ja&gl=JP",           1.05),
+    ("Google News",    "q=ChatGPT OR Claude OR Gemini OR LLM", 1.85),
+    ("ITmedia NEWS",   "rss.itmedia.co.jp/rss/2.0/…",    2.8),
+    ("TechCrunch JP",  "jp.techcrunch.com/feed/",         3.6),
 ]
+for name, url, top in feeds:
+    s = rect(0.22, top, 2.65, 0.65, fill=rgb_hex(0x0A,0x35,0x60),
+             line_c=C_BLUE, line_w=Pt(0.8), radius=10000)
+    text_on(s,
+            [name, url],
+            [9, 7],
+            [True, False],
+            [C_BLUE, C_MUTED])
 
-for label, top in rss_items:
-    h = 0.65 if "\n" not in label else (0.85 if label.count("\n") == 2 else 0.65)
-    add_rect(slide, 0.35, top, 2.9, h, fill=C_BLUE,
-             text=label, font_size=9.5, bold=False, font_color=C_WHITE,
-             radius=20000)
+# feedparser ラベル
+label(0.22, 4.4, 2.65, 0.28,
+      "lib: feedparser 6.x  (RSS/Atom parser)",
+      sz=7, color=C_CODE, code=True)
+
+# キーワード
+kw_box = rect(0.22, 4.72, 2.65, 1.9, fill=rgb_hex(0x0A,0x28,0x40),
+              line_c=C_GRAY, line_w=Pt(0.5), radius=8000)
+text_on(kw_box,
+        ["Keyword Filter  (17 words)",
+         "GPT / 生成AI / LLM / 大規模言語モデル",
+         "OpenAI / ChatGPT / Anthropic / Claude",
+         "Gemini / Grok / DeepSeek / Copilot",
+         "IBM BoB / AIエージェント / AI Agent",
+         "Agentic AI / RAG"],
+        [7.5, 7, 7, 7, 7, 7],
+        [True, False, False, False, False, False],
+        [C_MUTED, C_CODE, C_CODE, C_CODE, C_CODE, C_CODE])
 
 # ══════════════════════════════════════════════
-# 中央：処理ステップ（4ステップ）
+# 中央：処理ステップ
 # ══════════════════════════════════════════════
 steps = [
-    ("① RSS収集\nfetch_articles_from_feed()",  1.35, RGBColor(0x43,0xA0,0x47)),
-    ("② キーワードフィルタ\nfilter_articles()",        2.35, RGBColor(0x2E,0x7D,0x32)),
-    ("③ Claude API 要約\nsummarize_with_claude()",   3.35, RGBColor(0x1B,0x5E,0x20)),
-    ("④ メール送信\nsend_email()",                    4.55, RGBColor(0x33,0x69,0x1E)),
+    ("① collect_all_articles()",
+     ["RSS fetch  →  feedparser.parse(url)",
+      "期間: 前日 00:00〜24:00 JST",
+      "戻り値: list[dict]  {title, url, summary}"],
+     1.05),
+    ("② filter_articles()",
+     ["is_ai_related() でキーワード照合",
+      "title + summary を lower() 比較",
+      "戻り値: list[dict]  (絞り込み済み)"],
+     2.2),
+    ("③ summarize_with_claude()",
+     ["client.messages.create()",
+      "model: claude-sonnet-4-6",
+      "max_tokens: 4096",
+      "→ 重複排除 / 重要度ソート / 3行要約"],
+     3.35),
+    ("④ send_email()",
+     ["smtplib.SMTP_SSL('smtp.gmail.com', 465)",
+      "MIMEMultipart('alternative')",
+      "text/plain + text/html (UTF-8)"],
+     4.65),
 ]
 
-for label, top, col in steps:
-    add_rect(slide, 3.8, top, 3.5, 0.72, fill=col,
-             text=label, font_size=9.5, bold=False, font_color=C_WHITE,
-             radius=15000)
+for title, details, top in steps:
+    h = 0.95 if len(details) == 3 else 1.0
+    s = rect(3.3, top, 4.1, h, fill=rgb_hex(0x07,0x30,0x20),
+             line_c=C_GREEN, line_w=Pt(0.8), radius=10000)
+    text_on(s,
+            [title] + details,
+            [9] + [7.5] * len(details),
+            [True] + [False] * len(details),
+            [C_GREEN] + [C_MUTED] * len(details))
 
-# ステップ間の下矢印
-for top in [2.07, 3.07, 4.07]:
-    add_arrow(slide, 5.55, top, 5.55, top + 0.28,
-              color=RGBColor(0x2E,0x7D,0x32), width=Pt(2.0))
+# ステップ間の矢印
+for y in [2.0, 3.15, 4.3]:
+    arrow(5.35, y, 5.35, y + 0.2, color=C_GREEN, width=Pt(1.5))
 
 # ══════════════════════════════════════════════
-# 右：出力
+# 右：Gmail / 出力仕様
 # ══════════════════════════════════════════════
-# Gmailボックス
-add_rect(slide, 9.85, 1.35, 3.1, 1.1, fill=C_ORANGE,
-         text="Gmail\n受信トレイ", font_size=13, bold=True,
-         font_color=C_WHITE, radius=20000)
-add_textbox(slide, 9.85, 2.5, 3.1, 0.55,
-            "件名：【生成AI日報】\nYYYY年MM月DD日",
-            font_size=8.5, color=RGBColor(0x6D,0x4C,0x41))
+# Gmail
+gm = rect(9.82, 1.05, 3.3, 0.9, fill=rgb_hex(0x40,0x20,0x00),
+          line_c=C_ORANGE, line_w=Pt(1.2), radius=10000)
+text_on(gm,
+        ["Gmail  SMTP",
+         "smtp.gmail.com  :  465  (SSL)",
+         "Auth: App Password (16-digit)"],
+        [11, 8, 8],
+        [True, False, False],
+        [C_ORANGE, C_MUTED, C_MUTED])
 
 # メール仕様
-add_rect(slide, 9.85, 3.15, 3.1, 1.5, fill=RGBColor(0xFF,0xE0,0xB2),
-         text="• SMTP SSL（Port 465）\n• プレーンテキスト＋HTML\n• 毎朝 JST 07:00 に自動送信",
-         font_size=9, bold=False, font_color=RGBColor(0x4E,0x34,0x23),
-         align=PP_ALIGN.LEFT, radius=10000)
+spec = rect(9.82, 2.1, 3.3, 1.55, fill=rgb_hex(0x28,0x16,0x00),
+            line_c=C_BORDER, line_w=Pt(0.5), radius=8000)
+text_on(spec,
+        ["Mail Spec",
+         "Subject : 【生成AI日報】YYYY年MM月DD日",
+         "Body    : text/plain + text/html",
+         "Charset : UTF-8",
+         "Trigger : cron JST 07:00 daily"],
+        [8, 7.5, 7.5, 7.5, 7.5],
+        [True, False, False, False, False],
+        [C_MUTED, C_CODE, C_CODE, C_CODE, C_CODE])
+
+# 環境変数
+env = rect(9.82, 3.82, 3.3, 1.55, fill=rgb_hex(0x12,0x20,0x30),
+           line_c=C_GRAY, line_w=Pt(0.8), radius=8000)
+text_on(env,
+        ["GitHub Secrets  (env injection)",
+         "ANTHROPIC_API_KEY",
+         "GMAIL_ADDRESS",
+         "GMAIL_APP_PASSWORD",
+         "TO_EMAIL"],
+        [8, 7.5, 7.5, 7.5, 7.5],
+        [True, False, False, False, False],
+        [C_GRAY, C_CODE, C_CODE, C_CODE, C_CODE])
 
 # ══════════════════════════════════════════════
-# 下段：GitHub Actions + Secrets
+# Claude API ブロック（中央下）
 # ══════════════════════════════════════════════
-# GitHub Actions
-add_rect(slide, 3.8, 5.75, 3.5, 0.75, fill=C_PURPLE,
-         text="⏰  GitHub Actions\ncron: '0 22 * * *' (JST 07:00)",
-         font_size=9.5, bold=False, font_color=C_WHITE, radius=15000)
+cl = rect(3.3, 5.82, 4.1, 0.85, fill=rgb_hex(0x00,0x28,0x30),
+          line_c=C_TEAL, line_w=Pt(1.0), radius=10000)
+text_on(cl,
+        ["Anthropic Claude API",
+         "POST https://api.anthropic.com/v1/messages",
+         "lib: anthropic>=0.40.0  |  model: claude-sonnet-4-6"],
+        [10, 7.5, 7.5],
+        [True, False, False],
+        [C_TEAL, C_MUTED, C_CODE])
 
-# GitHub Secrets
-add_rect(slide, 0.35, 5.75, 2.9, 0.75, fill=C_GRAY,
-         text="🔐  GitHub Secrets\nANTHROPIC_API_KEY\nGMAIL_APP_PASSWORD 等",
-         font_size=8.5, bold=False, font_color=C_WHITE, radius=15000)
-
-# Claude API
-add_rect(slide, 9.85, 5.15, 3.1, 1.35, fill=C_TEAL,
-         text="🤖  Claude API\nclaude-sonnet-4-6\n(Anthropic)",
-         font_size=10, bold=False, font_color=C_WHITE, radius=20000)
+# ══════════════════════════════════════════════
+# GitHub Actions ブロック（上部・横断）
+# ══════════════════════════════════════════════
+ga = rect(3.3, 0.62, 4.1, 0.55, fill=rgb_hex(0x1A,0x0A,0x35),
+          line_c=C_PURPLE, line_w=Pt(1.0), radius=10000)
+text_on(ga,
+        ["GitHub Actions  |  ubuntu-latest  |  Python 3.12  |  cron: '0 22 * * *' UTC  =  JST 07:00"],
+        [8],
+        [True],
+        [C_PURPLE])
 
 # ══════════════════════════════════════════════
 # 矢印
 # ══════════════════════════════════════════════
-ARROW_COLOR = RGBColor(0x55, 0x77, 0x99)
+# RSS → ①収集
+for y in [1.37, 2.17, 3.12, 3.92]:
+    arrow(2.87, y, 3.3, y, color=C_BLUE, width=Pt(1.5))
 
-# RSS → ①RSS収集（各フィードから中央へ）
-for src_y in [1.68, 2.58, 3.78, 4.68]:
-    add_arrow(slide, 3.25, src_y, 3.8, src_y,
-              color=ARROW_COLOR, width=Pt(1.5))
+# ③要約 ↔ Claude API（双方向）
+arrow(5.35, 5.82, 5.35, 4.3, color=C_TEAL, width=Pt(1.5))   # 下→上（レスポンス）
+arrow(5.35, 4.3, 5.35, 5.82, color=C_TEAL, width=Pt(1.2))   # 上→下（リクエスト）
 
-# ④メール送信 → Gmail
-add_arrow(slide, 7.3, 4.91, 9.85, 2.6,
-          color=C_ORANGE, width=Pt(2.0))
+# ④送信 → Gmail
+arrow(7.4, 5.12, 9.82, 1.8, color=C_ORANGE, width=Pt(2.0))
 
 # GitHub Actions → ①（トリガー）
-add_arrow(slide, 5.55, 5.75, 5.55, 5.27,
-          color=C_PURPLE, width=Pt(2.0))
+arrow(5.35, 1.17, 5.35, 1.05, color=C_PURPLE, width=Pt(1.8))
 
-# GitHub Secrets → 処理ゾーン
-add_arrow(slide, 3.25, 6.12, 3.8, 6.12,
-          color=C_GRAY, width=Pt(1.5))
+# Secrets → ④（env injection）
+arrow(9.82, 4.6, 7.4, 4.95, color=C_GRAY, width=Pt(1.2))
 
-# Claude API ↔ ③要約ステップ
-add_arrow(slide, 9.85, 5.8, 8.0, 3.71,
-          color=C_TEAL, width=Pt(2.0))
-add_arrow(slide, 7.3, 3.71, 9.85, 5.6,
-          color=C_TEAL, width=Pt(1.5))
-
-# ══════════════════════════════════════════════
-# ラベル（矢印の補足）
-# ══════════════════════════════════════════════
-add_textbox(slide, 7.35, 4.55, 2.4, 0.3,
-            "要約・重複排除・\n重要度ソート",
-            font_size=7.5, color=C_TEAL)
-add_textbox(slide, 7.8, 2.85, 2.0, 0.3,
-            "メール本文",
-            font_size=7.5, color=C_ORANGE)
-add_textbox(slide, 5.6, 5.45, 1.5, 0.28,
-            "毎朝トリガー",
-            font_size=7.5, color=C_PURPLE)
-add_textbox(slide, 3.3, 5.85, 1.3, 0.3,
-            "認証情報注入",
-            font_size=7.5, color=C_GRAY)
+# ── ラベル ─────────────────────────────────────
+label(6.5, 5.0, 3.0, 0.28,
+      "MIME multipart email", sz=7.5, color=C_ORANGE)
+label(7.55, 4.35, 2.0, 0.28,
+      "env vars inject", sz=7, color=C_GRAY)
+label(5.55, 5.3, 1.8, 0.28,
+      "HTTP/1.1 POST\nHTTP/1.1 200 OK", sz=7, color=C_TEAL)
+label(5.55, 1.1, 2.2, 0.28,
+      "workflow_dispatch / schedule", sz=7, color=C_PURPLE)
 
 # ══════════════════════════════════════════════
-# 凡例（右下）
+# フッター（凡例）
 # ══════════════════════════════════════════════
-add_rect(slide, 0.2, 6.9, 13.0, 0.5, fill=C_NAVY,
-         text="", font_size=9)
-legend_items = [
-    ("■ RSSフィード（入力）", C_BLUE, 0.5),
-    ("■ 処理（Python）", RGBColor(0x2E,0x7D,0x32), 2.8),
-    ("■ Claude API", C_TEAL, 5.0),
-    ("■ Gmail（出力）", C_ORANGE, 7.2),
-    ("■ GitHub Actions", C_PURPLE, 9.4),
-    ("■ GitHub Secrets", C_GRAY, 11.3),
+rect(0, 7.18, 13.33, 0.32, fill=rgb_hex(0x0A,0x14,0x20),
+     line_c=C_BORDER, line_w=Pt(0.3))
+
+legend = [
+    ("■ RSS Input",        C_BLUE,   0.2),
+    ("■ Processing",       C_GREEN,  2.2),
+    ("■ Claude API",       C_TEAL,   4.2),
+    ("■ Gmail Output",     C_ORANGE, 6.2),
+    ("■ GitHub Actions",   C_PURPLE, 8.2),
+    ("■ GitHub Secrets",   C_GRAY,  10.5),
+    ("■ Code / Config",    C_CODE,  12.2),
 ]
-for label, color, left in legend_items:
-    tb = slide.shapes.add_textbox(Inches(left), Inches(6.97), Inches(2.0), Inches(0.35))
-    tf = tb.text_frame
-    p = tf.paragraphs[0]
-    run = p.add_run()
-    run.text = label
-    run.font.size = Pt(8)
-    run.font.color.rgb = color
+for txt, col, l in legend:
+    label(l, 7.2, 2.0, 0.28, txt, sz=7.5, color=col)
 
 # ══════════════════════════════════════════════
 # 保存
